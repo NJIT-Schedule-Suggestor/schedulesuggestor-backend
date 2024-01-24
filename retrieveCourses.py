@@ -5,13 +5,13 @@ def retrieve_courses(course_name, mysql):
     # Get all Tables
     cur.execute("SHOW TABLES")
     tables = cur.fetchall()
-    table_names = [table["Tables_in_schedule_suggestor"] for table in tables]
+    table_names = [table["Tables_in_pqx4tjcnq0ee8v05"] for table in tables]
 
     course_dict = {}
 
     # Go through each table to get all classes
     for table_name in table_names:
-        query = f"SELECT Course, Title, DeliveryMode, Credits FROM schedule_suggestor.`{table_name}`"
+        query = f"SELECT Course, Title, DeliveryMode, Credits FROM pqx4tjcnq0ee8v05e.`{table_name}`"
 
         cur.execute(query)
 
