@@ -1,31 +1,44 @@
-# from flask_mysqldb import MySQL
-
-
 def retrieve_courses(course_name, mysql):
     course_name = str(course_name.upper())
     cur = mysql.connection.cursor()
 
+    # Get all Tables
     cur.execute("SHOW TABLES")
     tables = cur.fetchall()
-    table_names = [table["Tables_in_schedule_suggestor"] for table in tables]
+    table_names = [table["Tables_in_pqx4tjcnq0ee8v05"] for table in tables]
 
-    course_list = []
+    course_dict = {}
 
+    # Go through each table to get all classes
     for table_name in table_names:
-        query = f"SELECT Course FROM schedule_suggestor.`{table_name}`"
+        query = f"SELECT Course, Title, DeliveryMode, Credits FROM pqx4tjcnq0ee8v05.`{table_name}`"
 
         cur.execute(query)
 
         courses = cur.fetchall()
 
-        filtered_courses = [
-            course["Course"]
-            for course in courses
-            if course["Course"].startswith(course_name)
-        ]
+        # Filter by class we want
+        for course in courses:
+            course_key = course["Course"]
+            if course_key.startswith(course_name):
+                if course_key not in course_dict:
+                    course_dict[course_key] = {
+                        "Course": course_key,
+                        "Title": course["Title"],
+                        "Credits": course["Credits"],
+                        "DeliveryModes": set(),
+                    }
+                course_dict[course_key]["DeliveryModes"].add(course["DeliveryMode"])
 
-        course_list.extend(filtered_courses)
-
-    final_list = sorted(set(course_list))
+    # Get the final list format
+    final_list = [
+        {
+            "Course": entry["Course"],
+            "Title": entry["Title"],
+            "Credits": entry["Credits"],
+            "DeliveryModes": list(entry["DeliveryModes"]),
+        }
+        for entry in course_dict.values()
+    ]
 
     return {"courses": final_list}
