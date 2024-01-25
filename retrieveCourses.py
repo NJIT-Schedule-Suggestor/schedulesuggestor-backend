@@ -11,7 +11,7 @@ def retrieve_courses(course_name, mysql):
 
     # Go through each table to get all classes
     for table_name in table_names:
-        query = f"SELECT Course, Title, DeliveryMode, Credits FROM pqx4tjcnq0ee8v05e.`{table_name}`"
+        query = f"SELECT Course, Title, DeliveryMode, Credits FROM pqx4tjcnq0ee8v05.`{table_name}`"
 
         cur.execute(query)
 
