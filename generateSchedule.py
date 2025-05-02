@@ -15,7 +15,7 @@ MOCK_SECTIONS = {
         {"section": "001", "day": "Monday", "start": "2:00 PM", "end": "3:20 PM", "mode": "Hybrid"},
         {"section": "002", "day": "Thursday", "start": "11:00 AM", "end": "12:20 PM", "mode": "In Person"}
     ],
-    "CS431": [
+    "CS435": [
         {"section": "001", "day": "Monday", "start": "4:00 PM", "end": "5:20 PM", "mode": "In Person"},
         {"section": "002", "day": "Thursday", "start": "1:00 PM", "end": "2:20 PM", "mode": "Online"}
     ]
