@@ -43,24 +43,88 @@
 
 #     return {"courses": final_list}
 
+from datetime import datetime
+
+def to_mysql_time(time_str):
+    try:
+        return datetime.strptime(time_str.strip(), "%I:%M %p").strftime("%H:%M:%S")
+    except ValueError:
+        print(f"[WARN] Could not parse time: '{time_str}'")
+        return None
+
+def load_courses_into_schedule_tables(mysql):
+    cur = mysql.connection.cursor()
+    input_table = "RawCourseMeetings"
+
+    cur.execute(f"""
+        SELECT Course, Section, Title, DeliveryMode, Credits, Day, StartTime, EndTime
+        FROM `{input_table}`
+    """)
+    rows = cur.fetchall()
+    section_map = {}
+
+    for row in rows:
+        key = (row['Course'], row['Section'])
+
+        # Convert credits
+        credits_raw = row['Credits']
+        try:
+            credits = float(credits_raw)
+        except Exception:
+            print(f"[SKIP] Invalid credits: '{credits_raw}' for {row['Course']} {row['Section']}")
+            continue
+
+        # Insert section if not seen
+        if key not in section_map:
+            # Check if already exists in DB
+            cur.execute("""
+                SELECT id FROM CourseSections
+                WHERE course_code = %s AND section = %s
+            """, (row['Course'], row['Section']))
+            result = cur.fetchone()
+
+            if result:
+                section_id = result['id']
+            else:
+                cur.execute("""
+                    INSERT INTO CourseSections (course_code, section, mode, title, credits)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (row['Course'], row['Section'], row['DeliveryMode'], row['Title'], credits))
+                mysql.connection.commit()
+                section_id = cur.lastrowid
+
+            section_map[key] = section_id
+        else:
+            section_id = section_map[key]
+
+        # Check if this row has valid meeting times
+        start = row['StartTime']
+        end = row['EndTime']
+        day = row['Day']
+
+        if start and end and day:
+            cur.execute("""
+                INSERT INTO SectionMeetings (section_id, day_of_week, start_time, end_time)
+                VALUES (%s, %s, %s, %s)
+            """, (section_id, day, start, end))
+            mysql.connection.commit()
+
+    print(f"Inserted {len(section_map)} unique sections with meetings.")
 
 def retrieve_courses(course_name, mysql):
     cur = mysql.connection.cursor()
-
-    table_names = ["example"]
+    table_names = ["CourseSections"]
 
     course_dict = {}
 
-    # Go through each table to get all classes
     for table_name in table_names:
-        query = f"SELECT Course, Title, DeliveryMode, Credits FROM `{table_name}`"
+        query = f"SELECT course_code AS Course, title AS Title, mode AS DeliveryMode, credits AS Credits FROM `{table_name}`"
+
         cur.execute(query)
         courses = cur.fetchall()
 
-        # Filter by class if course_name is provided
         for course in courses:
             course_key = course["Course"]
-
             if course_name is None or course_key.startswith(course_name.upper()):
                 if course_key not in course_dict:
                     course_dict[course_key] = {
@@ -71,7 +135,6 @@ def retrieve_courses(course_name, mysql):
                     }
                 course_dict[course_key]["DeliveryModes"].add(course["DeliveryMode"])
 
-    # Get the final list format
     final_list = [
         {
             "Course": entry["Course"],
